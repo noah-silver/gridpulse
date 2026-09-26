@@ -8,7 +8,8 @@
     "start": "tsx src/server.ts",
     "pay": "tsx src/pay.ts",
     "typecheck": "tsc --noEmit",
-    "mcp": "tsx src/mcp.ts"
+    "mcp": "tsx src/mcp.ts",
+    "build:mcpb": "esbuild src/mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=mcpb/server/index.mjs --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" && mcpb pack mcpb gridpulse-mcp.mcpb"
   },
   "license": "MIT",
   "dependencies": {

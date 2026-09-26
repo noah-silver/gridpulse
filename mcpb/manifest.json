@@ -1,0 +1,48 @@
+{
+  "manifest_version": "0.2",
+  "name": "gridpulse",
+  "display_name": "GridPulse: U.S. Energy Data",
+  "version": "1.0.0",
+  "description": "U.S. power grid mix, retail electricity prices and Henry Hub natural gas prices from the EIA, paid per call via x402.",
+  "long_description": "GridPulse gives your assistant live U.S. energy market data from the Energy Information Administration: the hourly generation mix and carbon-free share for each grid region, average retail electricity prices by state and sector, and Henry Hub natural gas spot prices. There's no signup or API key. Each call pays $0.005 to $0.01 in USDC via x402 from a small spending wallet you configure, on Base or Algorand.",
+  "author": { "name": "Noah Silver", "url": "https://github.com/noah-silver" },
+  "repository": { "type": "git", "url": "https://github.com/noah-silver/gridpulse" },
+  "homepage": "https://noahs-mac-mini.tail571e99.ts.net",
+  "documentation": "https://github.com/noah-silver/gridpulse#use-it-from-your-agent",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.mjs"],
+      "env": {
+        "EVM_PRIVATE_KEY": "${user_config.evm_private_key}",
+        "ALGORAND_MNEMONIC": "${user_config.algorand_mnemonic}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "grid_mix", "description": "Hourly generation mix and carbon-free share for a U.S. grid region ($0.01)" },
+    { "name": "retail_electricity_price", "description": "Retail electricity price by U.S. state and sector ($0.005)" },
+    { "name": "henry_hub_gas_price", "description": "Henry Hub natural gas spot price and 30-day stats ($0.005)" }
+  ],
+  "user_config": {
+    "evm_private_key": {
+      "type": "string",
+      "title": "Base wallet private key (optional)",
+      "description": "Private key (0x…) of a SMALL spending wallet holding USDC on Base. Never use your main wallet.",
+      "sensitive": true,
+      "required": false
+    },
+    "algorand_mnemonic": {
+      "type": "string",
+      "title": "Algorand wallet phrase (optional)",
+      "description": "25-word phrase of a SMALL spending wallet holding USDC on Algorand. Never use your main wallet.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "keywords": ["energy", "electricity", "power grid", "natural gas", "EIA", "x402", "USDC"],
+  "license": "MIT",
+  "compatibility": { "runtimes": { "node": ">=20.0.0" } }
+}
