@@ -12,14 +12,20 @@ import { GRID_REGIONS, SECTORS } from "./eia.js";
 
 const baseUrl = (process.env.GRIDPULSE_URL || "https://noahs-mac-mini.tail571e99.ts.net").replace(/\/$/, "");
 
-const { client, wallets } = await buyerClient({
-    algorandMnemonic: process.env.ALGORAND_MNEMONIC,
-    evmPrivateKey: process.env.EVM_PRIVATE_KEY,
-});
-const fetchWithPay = wrapFetchWithPayment(fetch, client);
-console.error(`GridPulse MCP: paying from ${wallets.join(", ")}`); // stderr: stdout is the MCP channel
+// The wallet is optional at startup so the server can always list its tools; calls need one.
+const buyer = process.env.ALGORAND_MNEMONIC || process.env.EVM_PRIVATE_KEY
+    ? await buyerClient({ algorandMnemonic: process.env.ALGORAND_MNEMONIC, evmPrivateKey: process.env.EVM_PRIVATE_KEY })
+    : undefined;
+const fetchWithPay = buyer && wrapFetchWithPayment(fetch, buyer.client);
+// stderr: stdout is the MCP channel
+console.error(buyer ? `GridPulse MCP: paying from ${buyer.wallets.join(", ")}` : "GridPulse MCP: no wallet set, tool calls will fail");
 
 async function paidCall(path: string) {
+    if (!buyer || !fetchWithPay) {
+        const text = "No wallet configured. Set EVM_PRIVATE_KEY (USDC on Base) or ALGORAND_MNEMONIC (USDC on Algorand) in this MCP server's env.";
+        return { isError: true, content: [{ type: "text" as const, text }] };
+    }
+    const client = buyer.client;
     const res = await fetchWithPay(`${baseUrl}${path}`);
     const body = await res.json();
     if (!res.ok) return { isError: true, content: [{ type: "text" as const, text: JSON.stringify(body) }] };
