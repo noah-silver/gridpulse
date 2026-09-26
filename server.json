@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.noah-silver/gridpulse",
+  "title": "GridPulse: U.S. Energy Data",
+  "description": "U.S. grid mix, retail electricity prices and Henry Hub gas prices (EIA), paid per call via x402.",
+  "repository": { "url": "https://github.com/noah-silver/gridpulse", "source": "github" },
+  "websiteUrl": "https://noahs-mac-mini.tail571e99.ts.net",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/noah-silver/gridpulse/releases/download/v1.0.0/gridpulse-mcp.mcpb",
+      "version": "1.0.0",
+      "fileSha256": "e1df8c7a475ae776bc0e050c487a0964ddea7e4a205e0cec1828e644aa9f62a7",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        { "name": "EVM_PRIVATE_KEY", "description": "Private key of a small spending wallet with USDC on Base (optional)", "isRequired": false, "isSecret": true, "format": "string" },
+        { "name": "ALGORAND_MNEMONIC", "description": "25-word phrase of a small spending wallet with USDC on Algorand (optional)", "isRequired": false, "isSecret": true, "format": "string" }
+      ]
+    }
+  ]
+}

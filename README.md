@@ -44,6 +44,10 @@ console.log(await res.json());
 
 ### MCP server (Claude Desktop, Claude Code, Cursor, …)
 
+**One-click (Claude Desktop):** download [`gridpulse-mcp.mcpb`](https://github.com/noah-silver/gridpulse/releases/latest/download/gridpulse-mcp.mcpb), open it, and optionally enter a small spending wallet. Also listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.noah-silver/gridpulse) as `io.github.noah-silver/gridpulse`.
+
+Or configure it manually:
+
 Add GridPulse as tools (`grid_mix`, `retail_electricity_price`, `henry_hub_gas_price`). Each tool call pays from **your own** wallet via x402. Use a small, dedicated spending wallet, never your main one.
 
 ```json
