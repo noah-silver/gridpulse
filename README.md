@@ -1,6 +1,6 @@
 # ⚡ GridPulse
 
-Pay-per-call U.S. energy market data for AI agents. Agents pay fractions of a cent in **USDC on Algorand** using the [x402](https://www.x402.org) protocol. No signup and no API keys for buyers.
+Pay-per-call U.S. energy market data for AI agents. Agents pay per call in **USDC on Algorand or Base** using the [x402](https://www.x402.org) protocol. No signup and no API keys for buyers.
 
 | Endpoint | Price | Returns |
 |---|---|---|
@@ -14,6 +14,50 @@ Free: `/` (landing page), `/llms.txt` (docs for agents), `/health`.
 Data source: U.S. Energy Information Administration (public domain).
 
 Entry for the [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge) (Composite: three endpoints, one payout address).
+
+## Use it from your agent
+
+Any [x402](https://www.x402.org) client works: call the endpoint, get `402 Payment Required`, pay, retry. The `@x402/fetch` wrapper does all of this automatically.
+
+- OpenAPI spec: https://noahs-mac-mini.tail571e99.ts.net/openapi.json
+- Agent docs: https://noahs-mac-mini.tail571e99.ts.net/llms.txt
+
+**Pay with USDC on Base** (`npm i @x402/fetch @x402/evm viem`):
+```ts
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { toClientEvmSigner } from "@x402/evm";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+const signer = toClientEvmSigner(account, createPublicClient({ chain: base, transport: http() }));
+const client = new x402Client().register("eip155:8453", new ExactEvmScheme(signer));
+const fetchWithPay = wrapFetchWithPayment(fetch, client);
+
+const res = await fetchWithPay("https://noahs-mac-mini.tail571e99.ts.net/v1/grid-mix?region=CISO");
+console.log(await res.json());
+```
+
+**Pay with USDC on Algorand:** see [`src/pay.ts`](src/pay.ts) (uses `@x402/avm`).
+
+### MCP server (Claude Desktop, Claude Code, Cursor, …)
+
+Add GridPulse as tools (`grid_mix`, `retail_electricity_price`, `henry_hub_gas_price`). Each tool call pays from **your own** wallet via x402. Use a small, dedicated spending wallet, never your main one.
+
+```json
+{
+  "mcpServers": {
+    "gridpulse": {
+      "command": "npx",
+      "args": ["-y", "github:noah-silver/gridpulse"],
+      "env": { "EVM_PRIVATE_KEY": "0x… (Base wallet holding a little USDC)" }
+    }
+  }
+}
+```
+Use `ALGORAND_MNEMONIC` instead of (or as well as) `EVM_PRIVATE_KEY` to pay with USDC on Algorand.
 
 ---
 

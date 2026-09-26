@@ -1,11 +1,12 @@
 // GridPulse — pay-per-call U.S. energy market data for AI agents.
-// Payments: USDC on Algorand via x402, settled by the GoPlausible facilitator.
+// Payments: USDC on Algorand (and optionally Base) via x402, settled by the GoPlausible facilitator.
 
 import { config } from "dotenv";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
 import { ExactAvmScheme } from "@x402/avm/exact/server";
+import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { ResourceServerExtension } from "@x402/core/types";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402-avm/extensions";
@@ -19,9 +20,12 @@ const NETWORKS = {
     mainnet: "algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=",
     testnet: "algorand:SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
 } as const;
+const BASE_NETWORKS = { mainnet: "eip155:8453", testnet: "eip155:84532" } as const;
 
 const payTo = process.env.PAY_TO_ADDRESS;
 const networkName = (process.env.NETWORK ?? "testnet") as keyof typeof NETWORKS;
+const basePayTo = process.env.BASE_PAY_TO_ADDRESS || undefined; // optional: also accept USDC on Base
+const PAYMENT_NOTE = `Accepts USDC on Algorand${basePayTo ? " or Base" : ""} (${process.env.NETWORK ?? "testnet"}).`;
 const facilitatorUrl = process.env.FACILITATOR_URL ?? "https://facilitator.goplausible.xyz";
 const publicUrl = (process.env.PUBLIC_URL ?? "").replace(/\/$/, "");
 const port = Number(process.env.PORT ?? 4021);
@@ -35,9 +39,11 @@ if (!(networkName in NETWORKS)) {
     process.exit(1);
 }
 const network = NETWORKS[networkName];
+const baseNetwork = BASE_NETWORKS[networkName];
 
 const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl }))
     .register(network, new ExactAvmScheme());
+if (basePayTo) server.register(baseNetwork, new ExactEvmScheme());
 server.registerExtension(bazaarResourceServerExtension as unknown as ResourceServerExtension);
 
 // ---------------------------------------------------------------------------
@@ -136,6 +142,9 @@ app.use(
                             payTo,
                             extra: { tag: "x402-global-challenge" },
                         },
+                        ...(basePayTo
+                            ? [{ scheme: "exact", price: e.price, network: baseNetwork, payTo: basePayTo }]
+                            : []),
                     ],
                     // Behind a proxy (Tailscale/Cloudflare) the request URL is plain http, so advertise the public one
                     resource: publicUrl ? publicUrl + e.route.split(" ")[1] : undefined,
@@ -184,7 +193,44 @@ app.get("/health", (c) => c.json({ status: "ok", network: networkName }));
 
 const TITLE = "GridPulse — U.S. energy market data for AI agents";
 const SUMMARY =
-    "Pay-per-call U.S. power grid mix, retail electricity prices and Henry Hub natural gas prices. No signup: agents pay fractions of a cent in USDC on Algorand via x402.";
+    "Pay-per-call U.S. power grid mix, retail electricity prices and Henry Hub natural gas prices. No signup or API key: agents pay per call in USDC via x402.";
+
+// OpenAPI 3.1 spec built from ENDPOINTS so agent frameworks can generate tools automatically
+app.get("/openapi.json", (c) => {
+    const paths: Record<string, unknown> = {};
+    for (const e of ENDPOINTS) {
+        const [method, path] = e.route.split(" ");
+        const bazaar = (e.discovery as any).bazaar;
+        const qp = bazaar.schema.properties.input.properties.queryParams ?? { properties: {}, required: [] };
+        paths[path] = {
+            [method.toLowerCase()]: {
+                summary: e.description.split(":")[0],
+                description: `${e.description}\n\nPrice: ${e.price} USDC per call, paid via x402 (HTTP 402).`,
+                parameters: Object.entries(qp.properties as Record<string, any>).map(([name, schema]) => ({
+                    name,
+                    in: "query",
+                    required: (qp.required ?? []).includes(name),
+                    description: schema.description,
+                    schema: { type: schema.type, ...(schema.enum ? { enum: schema.enum } : {}) },
+                    ...(bazaar.info.input.queryParams?.[name] ? { example: bazaar.info.input.queryParams[name] } : {}),
+                })),
+                responses: {
+                    "200": { description: "Data", content: { "application/json": { example: bazaar.info.output.example } } },
+                    "400": { description: "Invalid input (not charged)" },
+                    "402": { description: "Payment required: x402 payment requirements in the PAYMENT-REQUIRED header" },
+                    "502": { description: "Upstream data source unavailable (not charged)" },
+                },
+                "x-price-usd": e.price,
+            },
+        };
+    }
+    return c.json({
+        openapi: "3.1.0",
+        info: { title: "GridPulse", version: "1.0.0", description: `${SUMMARY} ${PAYMENT_NOTE}` },
+        servers: [{ url: publicUrl || `http://localhost:${port}` }],
+        paths,
+    });
+});
 
 app.get("/llms.txt", (c) =>
     c.text(
@@ -193,7 +239,7 @@ app.get("/llms.txt", (c) =>
             ``,
             `> ${SUMMARY}`,
             ``,
-            `All paid endpoints return HTTP 402 with x402 payment requirements (USDC on Algorand ${networkName}). Use any x402 client to pay and retry automatically.`,
+            `All paid endpoints return HTTP 402 with x402 payment requirements. ${PAYMENT_NOTE} Use any x402 client to pay and retry automatically. OpenAPI spec: ${publicUrl}/openapi.json`,
             ``,
             `## Endpoints`,
             ...ENDPOINTS.map((e) => {
@@ -238,7 +284,7 @@ ${publicUrl ? `<meta property="og:url" content="${publicUrl}/">` : ""}
 ${ENDPOINTS.map((e) => `<tr><td><code>${e.route}</code></td><td class="price">${e.price}</td><td>${e.description}</td></tr>`).join("\n")}
 </table>
 <p>Example: <code>GET /v1/grid-mix?region=ISNE</code> · <code>GET /v1/retail-price?state=TX&amp;sector=COM</code></p>
-<p>Payments are USDC on Algorand (${networkName}) using the <a href="https://www.x402.org">x402</a> protocol. Machine-readable docs: <a href="/llms.txt">/llms.txt</a>.</p>
+<p>Payments are USDC on Algorand${basePayTo ? " or Base" : ""} (${networkName}) using the <a href="https://www.x402.org">x402</a> protocol. Machine-readable docs: <a href="/llms.txt">/llms.txt</a> · <a href="/openapi.json">/openapi.json</a>.</p>
 <p>Data: U.S. Energy Information Administration (public domain). Not investment advice.</p>
 </body>
 </html>`),
@@ -246,6 +292,6 @@ ${ENDPOINTS.map((e) => `<tr><td><code>${e.route}</code></td><td class="price">${
 
 serve({ fetch: app.fetch, port }, () => {
     console.log(`⚡ GridPulse listening on http://localhost:${port}  (network: ${networkName})`);
-    console.log(`   Payments go to ${payTo}`);
+    console.log(`   Payments go to ${payTo}${basePayTo ? ` (Algorand) and ${basePayTo} (Base)` : ""}`);
     for (const e of ENDPOINTS) console.log(`   ${e.route.padEnd(22)} ${e.price}`);
 });
