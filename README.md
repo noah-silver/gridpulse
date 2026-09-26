@@ -4,9 +4,9 @@ Pay-per-call U.S. energy market data for AI agents. Agents pay fractions of a ce
 
 | Endpoint | Price | Returns |
 |---|---|---|
-| `GET /v1/grid-mix?region=ERCO` | $0.002 | Latest hourly generation mix for a grid region (MWh by fuel, renewable and carbon-free share) |
-| `GET /v1/retail-price?state=CT&sector=RES` | $0.001 | Retail electricity price by state and sector, year-over-year change, 12-month history |
-| `GET /v1/henry-hub` | $0.001 | Henry Hub natural gas spot price, 30-day stats and history |
+| `GET /v1/grid-mix?region=ERCO` | $0.01 | Latest hourly generation mix for a grid region (MWh by fuel, renewable and carbon-free share) |
+| `GET /v1/retail-price?state=CT&sector=RES` | $0.005 | Retail electricity price by state and sector, year-over-year change, 12-month history |
+| `GET /v1/henry-hub` | $0.005 | Henry Hub natural gas spot price, 30-day stats and history |
 
 **Live on Algorand MainNet:** https://noahs-mac-mini.tail571e99.ts.net
 

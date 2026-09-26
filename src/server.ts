@@ -47,7 +47,7 @@ server.registerExtension(bazaarResourceServerExtension as unknown as ResourceSer
 const ENDPOINTS = [
     {
         route: "GET /v1/grid-mix",
-        price: "$0.002",
+        price: "$0.01",
         description:
             "Latest hourly U.S. power grid generation mix for a balancing authority (ISO New England, PJM, ERCOT, CAISO, MISO, NYISO, SPP and more): MWh by fuel, % share, renewable and carbon-free share. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
@@ -74,7 +74,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/retail-price",
-        price: "$0.001",
+        price: "$0.005",
         description:
             "Latest average retail electricity price for any U.S. state (cents/kWh) by sector (residential, commercial, industrial), with year-over-year change and 12-month history. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
@@ -102,7 +102,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/henry-hub",
-        price: "$0.001",
+        price: "$0.005",
         description:
             "Henry Hub natural gas spot price ($/MMBtu): latest daily price plus 30-trading-day average, min, max, % change and full history. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
