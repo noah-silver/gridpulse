@@ -11,6 +11,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { ResourceServerExtension } from "@x402/core/types";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402-avm/extensions";
 import { pro } from "./pro.js";
+import { checkSeller, searchSellers, startSellerJobs } from "./sellercheck.js";
 import { gridMix, retailPrice, henryHub, GRID_REGIONS, SECTORS, STATES } from "./eia.js";
 
 
@@ -124,6 +125,48 @@ const ENDPOINTS = [
             },
         }),
     },
+    {
+        route: "GET /v1/seller-check",
+        price: "$0.002",
+        description:
+            "Check an x402 seller before you pay it: 0-100 reliability score and verdict from independent uptime probes (24h/7d), Bazaar settlement history, seller age, latency and buyer diversity (share of volume from the top payer, to spot self-generated volume). Returns price and payTo per network.",
+        discovery: declareDiscoveryExtension({
+            input: { url: "https://agent402.tools/api/weather-forecast" },
+            inputSchema: {
+                properties: { url: { type: "string", description: "Full URL of the x402 resource you plan to pay" } },
+                required: ["url"],
+            },
+            output: {
+                example: {
+                    url: "https://agent402.tools/api/weather-forecast",
+                    score: 82,
+                    verdict: "looks_reliable",
+                    flags: [],
+                    uptime: { last7d: { probes: 56, uptimePct: 100, avgLatencyMs: 310 } },
+                    buyerDiversity: { network: "algorand", recentPayments: 400, uniquePayers: 37, topPayerSharePct: 22.5 },
+                },
+            },
+        }),
+    },
+    {
+        route: "GET /v1/sellers/search",
+        price: "$0.005",
+        description:
+            "Find reliable x402 sellers for a task: keyword search across the Bazaar (2,000+ paid endpoints), filtered by network and max price, ranked by the GridPulse Seller Check reliability score.",
+        discovery: declareDiscoveryExtension({
+            input: { q: "weather forecast", network: "algorand", maxPrice: "0.05" },
+            inputSchema: {
+                properties: {
+                    q: { type: "string", description: "What you need, e.g. 'weather forecast' or 'token price'" },
+                    network: { type: "string", enum: ["algorand", "eip155", "solana"], description: "Optional payment network family" },
+                    maxPrice: { type: "string", description: "Optional max price per call in USD, e.g. 0.01" },
+                    limit: { type: "string", description: "Optional, 1-20 (default 10)" },
+                },
+                required: ["q"],
+            },
+            output: { example: { query: "weather forecast", results: [{ url: "https://example.com/weather", score: 82, verdict: "looks_reliable", flags: [] }] } },
+        }),
+    },
 ];
 
 const app = new Hono();
@@ -180,6 +223,23 @@ app.get("/v1/retail-price", async (c) => {
 });
 
 app.get("/v1/henry-hub", async (c) => c.json(await henryHub()));
+
+app.get("/v1/seller-check", async (c) => {
+    const url = c.req.query("url") ?? "";
+    if (!/^https?:\/\/[^\s/]+/.test(url) || url.length > 2000) return c.json({ error: "url must be a full http(s) URL" }, 400);
+    return c.json(await checkSeller(url));
+});
+
+app.get("/v1/sellers/search", async (c) => {
+    const q = (c.req.query("q") ?? "").trim().slice(0, 200);
+    const network = c.req.query("network");
+    const maxPrice = c.req.query("maxPrice");
+    const limit = Number(c.req.query("limit") ?? 10);
+    if (!q) return c.json({ error: "q is required" }, 400);
+    if (network && !["algorand", "eip155", "solana"].includes(network)) return c.json({ error: "network must be algorand, eip155 or solana" }, 400);
+    if (maxPrice !== undefined && !(Number(maxPrice) > 0)) return c.json({ error: "maxPrice must be a positive number" }, 400);
+    return c.json(await searchSellers(q, { network, maxPriceUsd: maxPrice ? Number(maxPrice) : undefined, limit: Math.max(1, Math.min(20, limit || 10)) }));
+});
 
 app.onError((err, c) => {
     console.error(err);
@@ -293,6 +353,7 @@ ${ENDPOINTS.map((e) => `<tr><td><code>${e.route}</code></td><td class="price">${
 </html>`),
 );
 
+startSellerJobs();
 serve({ fetch: app.fetch, port }, () => {
     console.log(`⚡ GridPulse listening on http://localhost:${port}  (network: ${networkName})`);
     console.log(`   Payments go to ${payTo}${basePayTo ? ` (Algorand) and ${basePayTo} (Base)` : ""}`);
