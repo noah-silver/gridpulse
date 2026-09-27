@@ -9,7 +9,8 @@
     "pay": "tsx src/pay.ts",
     "typecheck": "tsc --noEmit",
     "mcp": "tsx src/mcp.ts",
-    "build:mcpb": "esbuild src/mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=mcpb/server/index.mjs --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" && npx -y @anthropic-ai/mcpb@2.1.2 pack mcpb gridpulse-mcp.mcpb"
+    "build:mcpb": "esbuild src/mcp.ts --bundle --platform=node --format=esm --target=node20 --outfile=mcpb/server/index.mjs --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\" && npx -y @anthropic-ai/mcpb@2.1.2 pack mcpb gridpulse-mcp.mcpb",
+    "stripe:setup": "tsx src/stripe-setup.ts"
   },
   "license": "MIT",
   "dependencies": {
@@ -24,6 +25,7 @@
     "@x402/hono": "2.17.0",
     "dotenv": "18.0.4",
     "hono": "4.13.9",
+    "stripe": "22.6.2",
     "tsx": "4.23.15",
     "viem": "2.56.9",
     "zod": "4.6.5"

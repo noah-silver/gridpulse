@@ -6,9 +6,9 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 
 const cache = new Map<string, { at: number; data: unknown }>();
 
-type EiaRow = Record<string, string | number | null>;
+export type EiaRow = Record<string, string | number | null>;
 
-async function eia(path: string, params: Record<string, string>): Promise<EiaRow[]> {
+export async function eia(path: string, params: Record<string, string>): Promise<EiaRow[]> {
     const qs = new URLSearchParams({ api_key: process.env.EIA_API_KEY || "DEMO_KEY", ...params });
     const url = `${EIA_BASE}/${path}/data/?${qs}`;
 
@@ -23,8 +23,8 @@ async function eia(path: string, params: Record<string, string>): Promise<EiaRow
     return data;
 }
 
-const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
-const round = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d;
+export const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
+export const round = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d;
 
 // ---------------------------------------------------------------------------
 // Grid generation mix (hourly, by balancing authority)

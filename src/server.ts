@@ -1,7 +1,7 @@
 // GridPulse — pay-per-call U.S. energy market data for AI agents.
 // Payments: USDC on Algorand (and optionally Base) via x402, settled by the GoPlausible facilitator.
 
-import { config } from "dotenv";
+import "dotenv/config"; // first, so every module sees .env at import time
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
@@ -10,9 +10,9 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { ResourceServerExtension } from "@x402/core/types";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402-avm/extensions";
+import { pro } from "./pro.js";
 import { gridMix, retailPrice, henryHub, GRID_REGIONS, SECTORS, STATES } from "./eia.js";
 
-config();
 
 // Network IDs are hardcoded in the legacy format the hosted GoPlausible facilitator
 // still expects (see x402-foundation/x402#3528). Keep @x402/* pinned at 2.17.0.
@@ -127,6 +127,7 @@ const ENDPOINTS = [
 ];
 
 const app = new Hono();
+app.route("/", pro); // API-key subscriptions (pricing, checkout, /api/v2)
 
 app.use(
     paymentMiddleware(
@@ -279,6 +280,8 @@ ${publicUrl ? `<meta property="og:url" content="${publicUrl}/">` : ""}
 <body>
 <h1>⚡ GridPulse</h1>
 <p class="sub">${SUMMARY}</p>
+<p><b>Need hourly grid carbon intensity or Scope 2 factors for your team?</b> <a href="/pricing">See API plans (free tier available) →</a></p>
+<h2 style="font-size:20px">Pay-per-call for AI agents (x402)</h2>
 <table>
 <tr><th>Endpoint</th><th>Price</th><th>Returns</th></tr>
 ${ENDPOINTS.map((e) => `<tr><td><code>${e.route}</code></td><td class="price">${e.price}</td><td>${e.description}</td></tr>`).join("\n")}
