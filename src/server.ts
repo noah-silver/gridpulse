@@ -54,7 +54,7 @@ server.registerExtension(bazaarResourceServerExtension as unknown as ResourceSer
 const ENDPOINTS = [
     {
         route: "GET /v1/grid-mix",
-        price: "$0.01",
+        price: "$0.02",
         description:
             "Latest hourly U.S. power grid generation mix for a balancing authority (ISO New England, PJM, ERCOT, CAISO, MISO, NYISO, SPP and more): MWh by fuel, % share, renewable and carbon-free share. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
@@ -81,7 +81,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/retail-price",
-        price: "$0.005",
+        price: "$0.01",
         description:
             "Latest average retail electricity price for any U.S. state (cents/kWh) by sector (residential, commercial, industrial), with year-over-year change and 12-month history. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
@@ -109,7 +109,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/henry-hub",
-        price: "$0.005",
+        price: "$0.01",
         description:
             "Henry Hub natural gas spot price ($/MMBtu): latest daily price plus 30-trading-day average, min, max, % change and full history. Source: U.S. EIA.",
         discovery: declareDiscoveryExtension({
@@ -127,7 +127,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/seller-check",
-        price: "$0.002",
+        price: "$0.01",
         description:
             "Check an x402 seller before you pay it: 0-100 reliability score and verdict from independent uptime probes (24h/7d), Bazaar settlement history, seller age, latency and buyer diversity (share of volume from the top payer, to spot self-generated volume). Returns price and payTo per network.",
         discovery: declareDiscoveryExtension({
@@ -150,7 +150,7 @@ const ENDPOINTS = [
     },
     {
         route: "GET /v1/sellers/search",
-        price: "$0.005",
+        price: "$0.02",
         description:
             "Find reliable x402 sellers for a task: keyword search across the Bazaar (2,000+ paid endpoints), filtered by network and max price, ranked by the GridPulse Seller Check reliability score.",
         discovery: declareDiscoveryExtension({

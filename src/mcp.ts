@@ -34,14 +34,14 @@ async function paidCall(path: string) {
     return { content: [{ type: "text" as const, text: JSON.stringify({ ...body, payment }, null, 2) }] };
 }
 
-const server = new McpServer({ name: "gridpulse", version: "1.0.0" });
+const server = new McpServer({ name: "gridpulse", version: "1.0.1" });
 
 server.registerTool(
     "grid_mix",
     {
         title: "U.S. grid generation mix",
         description:
-            "Latest hourly electricity generation mix for a U.S. grid region (balancing authority): MWh by fuel, % share, renewable and carbon-free share. Costs $0.01 USDC per call.",
+            "Latest hourly electricity generation mix for a U.S. grid region (balancing authority): MWh by fuel, % share, renewable and carbon-free share. Costs $0.02 USDC per call.",
         inputSchema: { region: z.enum(Object.keys(GRID_REGIONS) as [string, ...string[]]).describe("Balancing authority code") },
     },
     async ({ region }) => paidCall(`/v1/grid-mix?region=${region}`),
@@ -52,7 +52,7 @@ server.registerTool(
     {
         title: "U.S. retail electricity price",
         description:
-            "Latest average retail electricity price (cents/kWh) for a U.S. state and sector, with year-over-year change and 12-month history. Costs $0.005 USDC per call.",
+            "Latest average retail electricity price (cents/kWh) for a U.S. state and sector, with year-over-year change and 12-month history. Costs $0.01 USDC per call.",
         inputSchema: {
             state: z.string().length(2).describe("Two-letter U.S. state code, or US for the national average"),
             sector: z.enum(Object.keys(SECTORS) as [string, ...string[]]).optional().describe("Defaults to RES (residential)"),
@@ -67,7 +67,7 @@ server.registerTool(
     {
         title: "Henry Hub natural gas price",
         description:
-            "Henry Hub natural gas spot price ($/MMBtu): latest daily price plus 30-trading-day average, min, max, % change and history. Costs $0.005 USDC per call.",
+            "Henry Hub natural gas spot price ($/MMBtu): latest daily price plus 30-trading-day average, min, max, % change and history. Costs $0.01 USDC per call.",
         inputSchema: {},
     },
     async () => paidCall("/v1/henry-hub"),

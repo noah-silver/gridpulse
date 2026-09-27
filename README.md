@@ -4,11 +4,11 @@ Pay-per-call U.S. energy market data for AI agents. Agents pay per call in **USD
 
 | Endpoint | Price | Returns |
 |---|---|---|
-| `GET /v1/grid-mix?region=ERCO` | $0.01 | Latest hourly generation mix for a grid region (MWh by fuel, renewable and carbon-free share) |
-| `GET /v1/retail-price?state=CT&sector=RES` | $0.005 | Retail electricity price by state and sector, year-over-year change, 12-month history |
-| `GET /v1/henry-hub` | $0.005 | Henry Hub natural gas spot price, 30-day stats and history |
-| `GET /v1/seller-check?url=…` | $0.002 | **x402 Seller Check:** 0–100 reliability score for any x402 seller (uptime probes, settlement history, age, buyer diversity) |
-| `GET /v1/sellers/search?q=weather&maxPrice=0.05` | $0.005 | Find reliable x402 sellers for a task, ranked by Seller Check score |
+| `GET /v1/grid-mix?region=ERCO` | $0.02 | Latest hourly generation mix for a grid region (MWh by fuel, renewable and carbon-free share) |
+| `GET /v1/retail-price?state=CT&sector=RES` | $0.01 | Retail electricity price by state and sector, year-over-year change, 12-month history |
+| `GET /v1/henry-hub` | $0.01 | Henry Hub natural gas spot price, 30-day stats and history |
+| `GET /v1/seller-check?url=…` | $0.01 | **x402 Seller Check:** 0–100 reliability score for any x402 seller (uptime probes, settlement history, age, buyer diversity) |
+| `GET /v1/sellers/search?q=weather&maxPrice=0.05` | $0.02 | Find reliable x402 sellers for a task, ranked by Seller Check score |
 
 **Live on Algorand MainNet:** https://noahs-mac-mini.tail571e99.ts.net
 
