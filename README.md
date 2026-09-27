@@ -9,6 +9,11 @@ Pay-per-call U.S. energy market data for AI agents. Agents pay per call in **USD
 | `GET /v1/henry-hub` | $0.01 | Henry Hub natural gas spot price, 30-day stats and history |
 | `GET /v1/seller-check?url=…` | $0.01 | **x402 Seller Check:** 0–100 reliability score for any x402 seller (uptime probes, settlement history, age, buyer diversity) |
 | `GET /v1/sellers/search?q=weather&maxPrice=0.05` | $0.02 | Find reliable x402 sellers for a task, ranked by Seller Check score |
+| `GET /v1/algorand/network-health` | $0.008 | Algorand block time, TPS, online stake share, health (Algorand USDC only) |
+| `GET /v1/algorand/account?address=…` | $0.01 | Spendable ALGO, can it pay fees, can it receive USDC, staking and rekey status (Algorand USDC only) |
+| `GET /v1/algorand/asset?id=31566704` | $0.015 | ASA supply, Pera verification tier, clawback/freeze risk flags (Algorand USDC only) |
+| `GET /v1/algorand/tx?id=…` | $0.01 | Plain-English transaction explainer with decoded note (Algorand USDC only) |
+| `GET /v1/crypto/market-pulse` | $0.015 | ALGO/BTC/ETH/SOL/USDC prices cross-checked on Coinbase + Kraken (Algorand USDC only) |
 
 **Live on Algorand MainNet:** https://noahs-mac-mini.tail571e99.ts.net
 

@@ -13,6 +13,7 @@ import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402-
 import { pro } from "./pro.js";
 import { startBackups } from "./db.js";
 import { checkSeller, searchSellers, startSellerJobs } from "./sellercheck.js";
+import { networkHealth, accountSummary, assetInfo, explainTx, marketPulse, isAddress, isTxId } from "./algo.js";
 import { gridMix, retailPrice, henryHub, GRID_REGIONS, SECTORS, STATES } from "./eia.js";
 
 
@@ -168,6 +169,58 @@ const ENDPOINTS = [
             output: { example: { query: "weather forecast", results: [{ url: "https://example.com/weather", score: 82, verdict: "looks_reliable", flags: [] }] } },
         }),
     },
+    // Algorand Insights: Algorand-only, so all income lands in PAY_TO_ADDRESS
+    {
+        route: "GET /v1/algorand/network-health",
+        price: "$0.008",
+        algorandOnly: true,
+        description: "Algorand mainnet health: last round, seconds since last block, average block time and TPS over the last 100 rounds, online stake share, protocol version.",
+        discovery: declareDiscoveryExtension({
+            output: { example: { network: "algorand-mainnet", lastRound: 65433388, avgBlockTimeSec: 2.76, tpsLast100Rounds: 11.5, onlineStakeSharePct: 20.5, healthy: true } },
+        }),
+    },
+    {
+        route: "GET /v1/algorand/account",
+        price: "$0.01",
+        algorandOnly: true,
+        description: "Algorand account check before paying or sending: ALGO balance, spendable ALGO after minimum balance, whether it can pay fees, USDC opt-in and balance (can it receive USDC?), consensus/staking status, rekey status and named asset holdings.",
+        discovery: declareDiscoveryExtension({
+            input: { address: "F2ZYO2DDPQXOACUYBYQIHMQRAB3TJFZVCNUD3OU3CR5OOJUKFZOF5EYVJ4" },
+            inputSchema: { properties: { address: { type: "string", description: "58-character Algorand address" } }, required: ["address"] },
+            output: { example: { algoBalance: 0.997, spendableAlgo: 0.797, canPayFees: true, usdc: { optedIn: true, balance: 0.136, canReceive: true }, rekeyedTo: null } },
+        }),
+    },
+    {
+        route: "GET /v1/algorand/asset",
+        price: "$0.015",
+        algorandOnly: true,
+        description: "Algorand ASA check: name, unit, decimals, total and circulating supply, creator, Pera Wallet verification tier (verified / suspicious / unverified) and risk flags (clawback, freeze, mutable). Spot fake tokens before accepting them.",
+        discovery: declareDiscoveryExtension({
+            input: { id: "31566704" },
+            inputSchema: { properties: { id: { type: "string", description: "Algorand asset ID" } }, required: ["id"] },
+            output: { example: { assetId: 31566704, name: "USDC", unitName: "USDC", decimals: 6, peraVerification: "verified", flags: ["freeze_enabled: issuer can freeze holders"] } },
+        }),
+    },
+    {
+        route: "GET /v1/algorand/tx",
+        price: "$0.01",
+        algorandOnly: true,
+        description: "Explain an Algorand transaction in plain English: type, who paid whom, amount with asset name and decimals, fee, time, decoded note, rekey and inner transactions. Useful for verifying a payment landed.",
+        discovery: declareDiscoveryExtension({
+            input: { id: "AJNPTKWJJXPEO5E6WDDIODMOKMB34WBLFPJB4HEJV3XUDJDYI2ZA" },
+            inputSchema: { properties: { id: { type: "string", description: "52-character Algorand transaction ID" } }, required: ["id"] },
+            output: { example: { summary: "45J4YL… sent 0.02 USDC to F2ZYO2…", type: "axfer", amount: 0.02, unitName: "USDC", timeUtc: "2026-09-27T04:19:07.000Z" } },
+        }),
+    },
+    {
+        route: "GET /v1/crypto/market-pulse",
+        price: "$0.015",
+        algorandOnly: true,
+        description: "Crypto market pulse for ALGO, BTC, ETH, SOL and USDC: price cross-checked across Coinbase and Kraken, 24h change, high/low, volume, source spread and USDC peg deviation.",
+        discovery: declareDiscoveryExtension({
+            output: { example: { assets: [{ symbol: "ALGO", priceUsd: 0.11446, change24hPct: -1.61, sourceSpreadPct: 0.017, sources: ["coinbase", "kraken"] }], usdcPegDeviationPct: -0.01 } },
+        }),
+    },
 ];
 
 const app = new Hono();
@@ -187,7 +240,7 @@ app.use(
                             payTo,
                             extra: { tag: "x402-global-challenge" },
                         },
-                        ...(basePayTo
+                        ...(basePayTo && !("algorandOnly" in e)
                             ? [{ scheme: "exact", price: e.price, network: baseNetwork, payTo: basePayTo }]
                             : []),
                     ],
@@ -241,6 +294,26 @@ app.get("/v1/sellers/search", async (c) => {
     if (maxPrice !== undefined && !(Number(maxPrice) > 0)) return c.json({ error: "maxPrice must be a positive number" }, 400);
     return c.json(await searchSellers(q, { network, maxPriceUsd: maxPrice ? Number(maxPrice) : undefined, limit: Math.max(1, Math.min(20, limit || 10)) }));
 });
+
+// Algorand Insights. Upstream "not found" becomes 404, so buyers aren't charged for bad IDs.
+const notFound = (c: any, what: string) => c.json({ error: `${what} not found on Algorand mainnet` }, 404);
+app.get("/v1/algorand/network-health", async (c) => c.json(await networkHealth()));
+app.get("/v1/algorand/account", async (c) => {
+    const address = (c.req.query("address") ?? "").trim();
+    if (!isAddress(address)) return c.json({ error: "address must be a 58-character Algorand address" }, 400);
+    try { return c.json(await accountSummary(address)); } catch (e: any) { if (e.status === 404) return notFound(c, "Account"); throw e; }
+});
+app.get("/v1/algorand/asset", async (c) => {
+    const id = Number(c.req.query("id"));
+    if (!Number.isSafeInteger(id) || id <= 0) return c.json({ error: "id must be a positive Algorand asset ID" }, 400);
+    try { return c.json(await assetInfo(id)); } catch (e: any) { if (e.status === 404) return notFound(c, "Asset"); throw e; }
+});
+app.get("/v1/algorand/tx", async (c) => {
+    const id = (c.req.query("id") ?? "").trim();
+    if (!isTxId(id)) return c.json({ error: "id must be a 52-character Algorand transaction ID" }, 400);
+    try { return c.json(await explainTx(id)); } catch (e: any) { if (e.status === 404) return notFound(c, "Transaction"); throw e; }
+});
+app.get("/v1/crypto/market-pulse", async (c) => c.json(await marketPulse()));
 
 app.onError((err, c) => {
     console.error(err);
@@ -306,7 +379,7 @@ app.get("/llms.txt", (c) =>
             `## Endpoints`,
             ...ENDPOINTS.map((e) => {
                 const [method, path] = e.route.split(" ");
-                return `- ${method} ${publicUrl}${path} (${e.price} USDC): ${e.description}`;
+                return `- ${method} ${publicUrl}${path} (${e.price} USDC${"algorandOnly" in e ? ", Algorand only" : ""}): ${e.description}`;
             }),
             ``,
             `Grid regions: ${Object.entries(GRID_REGIONS).map(([k, v]) => `${k} (${v})`).join(", ")}`,
