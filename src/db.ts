@@ -2,7 +2,7 @@
 
 import { DatabaseSync } from "node:sqlite";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync } from "node:fs";
 
 export const PLANS = {
     free: { name: "Free", priceUsd: 0, dailyLimit: 100, historyDays: 0, scope2: false },
@@ -99,4 +99,23 @@ export function recordCall(row: KeyRow) {
 export function usageToday(row: KeyRow) {
     const r = db.prepare(`SELECT calls FROM usage WHERE key_hash = ? AND day = ?`).get(row.key_hash, today()) as { calls: number } | undefined;
     return { calls: r?.calls ?? 0, limit: PLANS[row.plan].dailyLimit };
+}
+
+// Nightly snapshot of the accounts DB (e.g. to iCloud); keeps the last 14.
+export function startBackups(dir: string | undefined) {
+    if (!dir) return;
+    const run = () => {
+        try {
+            mkdirSync(dir, { recursive: true });
+            const file = `${dir}/gridpulse-${new Date().toISOString().slice(0, 10)}.db`;
+            rmSync(file, { force: true });
+            db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
+            for (const old of readdirSync(dir).filter((f) => /^gridpulse-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort().slice(0, -14)) rmSync(`${dir}/${old}`);
+            console.log(`[backup] saved ${file}`);
+        } catch (e) {
+            console.error(`[backup] failed: ${(e as Error).message}`);
+        }
+    };
+    run();
+    setInterval(run, 24 * 3_600_000).unref();
 }

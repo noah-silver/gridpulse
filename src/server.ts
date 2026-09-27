@@ -11,6 +11,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import type { ResourceServerExtension } from "@x402/core/types";
 import { declareDiscoveryExtension, bazaarResourceServerExtension } from "@x402-avm/extensions";
 import { pro } from "./pro.js";
+import { startBackups } from "./db.js";
 import { checkSeller, searchSellers, startSellerJobs } from "./sellercheck.js";
 import { gridMix, retailPrice, henryHub, GRID_REGIONS, SECTORS, STATES } from "./eia.js";
 
@@ -354,6 +355,7 @@ ${ENDPOINTS.map((e) => `<tr><td><code>${e.route}</code></td><td class="price">${
 );
 
 startSellerJobs();
+startBackups(process.env.BACKUP_DIR);
 serve({ fetch: app.fetch, port }, () => {
     console.log(`⚡ GridPulse listening on http://localhost:${port}  (network: ${networkName})`);
     console.log(`   Payments go to ${payTo}${basePayTo ? ` (Algorand) and ${basePayTo} (Base)` : ""}`);
