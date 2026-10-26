@@ -20,8 +20,6 @@ Pay-per-call U.S. energy market data for AI agents. Agents pay per call in **USD
 Free: `/` (landing page), `/llms.txt` (docs for agents), `/health`.
 Data source: U.S. Energy Information Administration (public domain).
 
-Entry for the [Algorand Global x402 Challenge](https://algorand.co/global-x402-challenge) (Composite: three endpoints, one payout address).
-
 ## Use it from your agent
 
 Any [x402](https://www.x402.org) client works: call the endpoint, get `402 Payment Required`, pay, retry. The `@x402/fetch` wrapper does all of this automatically.

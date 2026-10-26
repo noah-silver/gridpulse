@@ -238,7 +238,6 @@ app.use(
                             price: e.price,
                             network,
                             payTo,
-                            extra: { tag: "x402-global-challenge" },
                         },
                         ...(basePayTo && !("algorandOnly" in e)
                             ? [{ scheme: "exact", price: e.price, network: baseNetwork, payTo: basePayTo }]
